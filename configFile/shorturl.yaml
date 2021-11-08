@@ -1,0 +1,38 @@
+version: 1.0
+
+short:
+    defaultUrl: http://localhost:8080/
+    maxLength: 9
+    rateBucketNum: 10
+    http:
+        address: :8080
+    grpc:
+        address: :8082
+
+develop: false
+
+log:
+    level: all
+    path: .
+
+
+db:
+    dBType: mysql
+    cacheType: redis
+    createTableEnabled: true
+    mysql:
+        ip: 127.0.0.1
+        port: 3306
+        username: root
+        passwd: root
+        idleConn: 500
+        maxConn: 500
+        libName: shorturl
+    redis:
+        hosts: localhost:6379
+        username: root
+        passwd: UMF@test
+        libName: 0
+        drive: single
+
+
