@@ -9,15 +9,15 @@ short:
     grpc:
         address: :8082
 
-develop: false
+develop: true
 
 log:
     level: all
-    path: .
+    path: ./logs
 
 
 db:
-    dBType: mysql
+    dBType: chainmaker
     cacheType: redis
     createTableEnabled: true
     mysql:
@@ -34,5 +34,8 @@ db:
         passwd: UMF@test
         libName: 0
         drive: single
+    chainmaker:
+        conteactName: shorturl
+        configpath: ./configFile/sdk_config_org1_client1.yml
 
 

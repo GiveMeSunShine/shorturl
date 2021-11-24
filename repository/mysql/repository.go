@@ -113,18 +113,18 @@ func (m *mysqlRepository) Find(code string) (redirect *service.Redirect, err err
 	return redirect, nil
 }
 
-func (m *mysqlRepository) Store(redirect *service.Redirect) error {
+func (m *mysqlRepository) Store(redirect *service.Redirect) ([]byte,error) {
 	insertSql := fmt.Sprintf("insert into url_map (short_url,long_url,compression_code) values('%s','%s','%s') ",
 		redirect.ShortUrl, redirect.LongUrl, redirect.Code)
 	log.Println("insertSql : ",insertSql)
 	exec, err := m.client.DB().Exec(insertSql)
 	if err != nil {
-		return err
+		return nil,err
 	}
 	id, err := exec.LastInsertId()
 	if err != nil {
-		return err
+		return nil,err
 	}
 	fmt.Println("[MySQL] Store success : ",id)
-	return nil
+	return nil,nil
 }

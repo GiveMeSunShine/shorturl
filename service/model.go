@@ -16,4 +16,10 @@ type Redirect struct {
 	LongUrl       string `json:"long_url"`
 	ShortUrl  string `json:"short_url"`
 	CreatedAt time.Time `json:"created_at"`
+	ChainInfo interface{}
+}
+
+type ChainInfo struct {
+	Txid string `json:"txid"`
+	BlockHeight uint64 `json:"block_height"`
 }

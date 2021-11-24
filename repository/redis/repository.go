@@ -57,7 +57,7 @@ func (m *redisRepository) Find(code string) (redirect *service.Redirect, err err
 	}, nil
 }
 
-func (m *redisRepository) Store(redirect *service.Redirect) error {
+func (m *redisRepository) Store(redirect *service.Redirect) ([]byte,error) {
 	data := map[string]interface{}{
 		"code":       redirect.Code,
 		"long_url":        redirect.LongUrl,
@@ -67,7 +67,7 @@ func (m *redisRepository) Store(redirect *service.Redirect) error {
 
 	err := m.client.HMSet(m.generateKey(redirect.Code), data)
 	if err != nil {
-		return errors.Wrap(err, "repository.Redirect.Store")
+		return nil,errors.Wrap(err, "repository.Redirect.Store")
 	}
-	return nil
+	return nil,nil
 }

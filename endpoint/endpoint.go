@@ -13,14 +13,14 @@ import (
 	"context"
 	"github.com/go-kit/kit/endpoint"
 	"shorturl/service"
-	"time"
 )
 
 type dataResponse struct {
-	LongUrl string `json:"long_url"`
+	//LongUrl string `json:"long_url"`
 	Code string `json:"code"`
-	CreateAt time.Time `json:"create_at"`
+	//CreateAt time.Time `json:"create_at"`
 	ShortUrl string `json:"short_url"`
+	ChainInfo interface{} `json:"chain_info"`
 }
 
 type GetRequest struct {
@@ -63,9 +63,10 @@ func MakePostEndpoint(s service.Service) endpoint.Endpoint {
 
 		if err == nil && post != nil {
 			resp.Code = post.Code
-			resp.LongUrl = req.LongUrl
-			resp.CreateAt = post.CreatedAt
+			//resp.LongUrl = req.LongUrl
+			//resp.CreateAt = post.CreatedAt
 			resp.ShortUrl = post.ShortUrl
+			resp.ChainInfo = post.ChainInfo
 		}
 		return PostResponse{Err: err,Data: resp},nil
 	}

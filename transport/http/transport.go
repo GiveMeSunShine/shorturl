@@ -25,6 +25,26 @@ import (
 
 func NewHttpHandler(endpoints endpoint.Endpoints, options map[string][] kithttp.ServerOption) http.Handler {
 	router := mux.NewRouter()
+	router.Handle("/", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/css/animate.min.css", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/css/bootstrap.min.css", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/css/font-awesome.min.css", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/css/templatemo-style.css", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/js/jquery.js", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/js/bootstrap.min.js", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/js/wow.min.js", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/js/short.js", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/fonts/FontAwesome.otf", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/fonts/fontawesome-webfont.eot", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/fonts/fontawesome-webfont.svg", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/fonts/fontawesome-webfont.ttf", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/fonts/fontawesome-webfont.woff", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/fonts/fontawesome-webfont.woff2", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/images/team_img_1.png", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/images/team_img_2.png", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/images/team_img_3.png", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/images/team_img_4.png", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
+	router.Handle("/favicon.ico", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
 	router.Handle("/{code}",kithttp.NewServer(
 			endpoints.GetEndpoint,
 			decodeGetRequest,

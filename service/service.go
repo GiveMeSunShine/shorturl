@@ -11,6 +11,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/go-kit/log"
 	"shorturl/shortid"
@@ -56,8 +57,14 @@ func (s service) Post(ctx context.Context, url string) (redirect *Redirect, err 
 	 	CreatedAt: now,
 	 }
 
-	if err = s.repository.Store(redirect); err != nil {
+	store, err := s.repository.Store(redirect)
+	if err != nil {
 		return
+	}
+	if store!=nil {
+		chainInfo := &ChainInfo{}
+		json.Unmarshal(store,chainInfo)
+		redirect.ChainInfo = chainInfo
 	}
 
 	//redirect.LongUrl = strings.TrimRight(s.shortUrl,"/")+"/"+code

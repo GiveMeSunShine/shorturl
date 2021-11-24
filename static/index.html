@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <title>U短链</title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,400italic,700' rel='stylesheet'
+          type='text/css'>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/animate.min.css">
+    <link rel="stylesheet" href="css/templatemo-style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+<div class="adcenter">
+    <script src="http://www.cssmoban.com/include/new/ggad2_728x90.js"></script>
+</div>
+<!-- start preloader -->
+<div class="preloader">
+    <div class="sk-spinner sk-spinner-three-bounce">
+        <div class="sk-bounce1"></div>
+        <div class="sk-bounce2"></div>
+        <div class="sk-bounce3"></div>
+    </div>
+</div>
+<!-- end preloader -->
+<!---start-countdown-timer-->
+<section id="countdown">
+    <div class="container">
+        <div class="row" id="row">
+            <div class="col-md-12">
+                <h1 class="wow bounceIn" data-wow-delay="0.9s">U<small>Short</small></h1>
+                <h2 class="element">
+                    <span class="sub-element">解决长网址传播受限的问题，缩短网址字符，易于传播</span>
+                </h2>
+
+                <!-- subscribe form -->
+                <form>
+                    <div class="col-md-3 col-sm-3"></div>
+                    <div class="col-md-4 col-sm-4">
+                        <input type="text" id="long_url" class="form-control" placeholder="请填写长连接地址(必须以http/https 开头)">
+                    </div>
+                    <div class="col-md-2 col-sm-2">
+                        <input type="button" data-toggle="modal" data-target="#pop-win" onclick="getShortUrl()" class="form-control" value="生成短链">
+                    </div>
+                </form>
+                <!-- subscribe form -->
+                <div class="modal fade" id="pop-win" tabindex="-1" role="dialog" aria-labelledby="pop-tab" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content text-center">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                                <h3 class="modal-title"  style="color: #2b542c" id="pop-tab">结果信息</h3>
+                            </div>
+                            <div class="modal-body" id="modal-body"  style="color: #203bc0;">
+                                <table cellspacing="5">
+                                    <tr>
+                                        <td><label>压缩码：</label></td>
+                                        <td><span id="code"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label>短连接：</label></td>
+                                        <td><a id='short_url_href' href='' target='_blank'></a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><label>所在区块：</label></td>
+                                        <td><span id="block_height"></span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><label>交易ID：</label></td>
+                                        <td><span id="txid" ></span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        </div>
+    </div>
+</section>
+<!---End-countdown-timer-->
+
+<!-- start features -->
+<section class="features text-center">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="title wow bounceIn">
+                    <h2>功能特性</h2>
+                </div>
+                <div class="col-md-3 col-sm-6 wow fadeInUp templatemo-feature" data-wow-delay="0.6s">
+                    <i class="fa fa-link"></i>
+                    <h4 class="text-uppercase">链接缩短</h4>
+                    <p>将原始网页链接快速生成短链接,减少链接所占字数</p>
+                </div>
+                <div class="col-md-3 col-sm-6 wow fadeInUp templatemo-feature" data-wow-delay="0.6s">
+                    <i class="fa fa-vimeo-square"></i>
+                    <h4 class="text-uppercase">永久有效</h4>
+                    <p> 无需担心过期失效,生成的短链接永久有效。 </p>
+                </div>
+                <div class="col-md-3 col-sm-6 wow fadeInUp templatemo-feature" data-wow-delay="0.6s">
+                    <i class="fa fa-pencil"></i>
+                    <h4 class="text-uppercase">不可篡改</h4>
+                    <p>利用区块链不可篡改等特性，确保信息安全可靠</p>
+                </div>
+                <div class="col-md-3 col-sm-6 wow fadeInUp templatemo-feature" data-wow-delay="0.6s">
+                    <i class="fa fa-area-chart"></i>
+                    <h4 class="text-uppercase">专业数据分析</h4>
+                    <p>低成本接入，无需埋点，全面展示网址点击数据</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- end features -->
+
+<!-- start team -->
+<section class="team">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <div class="title wow bounceIn">
+                    <h2>应用场景</h2>
+                </div>
+            </div>
+            <div class="col-md-6 col-sm-6 border_right border_bottom wow fadeIn" data-wow-delay="0.6s">
+                <div class="media">
+                    <div class="pull-left media-object">
+                        <img src="images/team_img_1.png" class="img-circle img-responsive" alt="team img">
+                    </div>
+                    <div class="media-body">
+                        <h4 class="media-heading text-uppercase">产品运营</h4>
+                        <h5>手头必备的数据运营工具</h5>
+                        <p>1. 活动/APP/产品链接 </p>
+                        <p>2. 生成渠道短链接 </p>
+                        <p>3. 多渠道投放 </p>
+                        <p>4. 查看数据报告 </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-sm-6 border_bottom wow fadeIn" data-wow-delay="0.6s">
+                <div class="media">
+                    <div class="pull-left media-object">
+                        <img src="images/team_img_2.png" class="img-circle img-responsive" alt="team img">
+                    </div>
+                    <div class="media-body">
+                        <h4 class="media-heading text-uppercase">电商运营</h4>
+                        <h5>必备的渠道效果统计工具</h5>
+                        <p>1. 商品/店铺/活动链接 </p>
+                        <p>2. 生成渠道短链接 </p>
+                        <p>3. 多渠道投放 </p>
+                        <p>4. 查看数据报告 </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-sm-6 border_right wow fadeIn" data-wow-delay="0.6s">
+                <div class="media">
+                    <div class="pull-left media-object">
+                        <img src="images/team_img_3.png" class="img-circle img-responsive" alt="team img">
+                    </div>
+                    <div class="media-body">
+                        <h4 class="media-heading text-uppercase">市场营销</h4>
+                        <h5>必备的渠道投放效果、转化率分析工具 </h5>
+                        <p>1. 网站/问卷/H5链接 </p>
+                        <p>2. 生成渠道短链接 </p>
+                        <p>3. 多渠道投放 </p>
+                        <p>4. 查看数据报告 </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-sm-6 wow fadeIn" data-wow-delay="0.6s">
+                <div class="media">
+                    <div class="pull-left media-object">
+                        <img src="images/team_img_4.png" class="img-circle img-responsive" alt="team img">
+                    </div>
+                    <div class="media-body">
+                        <h4 class="media-heading text-uppercase">自媒体</h4>
+                        <h5>作品分发、效果监测必备工具</h5>
+                        <p>1. 文章/视频链接 </p>
+                        <p>2. 生成渠道短链接 </p>
+                        <p>3. 多渠道投放 </p>
+                        <p>4. 查看数据报告 </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- end team -->
+
+<!-- start contact -->
+<section class="contact">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="title wow bounceIn">
+                    <h2>联系我们</h2>
+                </div>
+            </div>
+            <div class="col-md-6 col-sm-6 wow fadeInLeft" data-wow-delay="0.6s">
+                <div class="contact-form">
+                    <form action="#" method="post">
+                        <input type="text" class="form-control" placeholder="姓名">
+                        <input type="email" class="form-control" placeholder="邮箱">
+                        <input type="text" class="form-control" placeholder="主题">
+                        <textarea class="form-control" rows="4" placeholder="信息"></textarea>
+                        <input type="submit" class="form-control" value="发送">
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-6 col-sm-6 wow fadeInRight" data-wow-delay="0.6s">
+                <address>
+                    <p><i class="fa fa-envelope-o"></i> shihong_ysh@163.com</p>
+                    <p><i class="fa fa-phone"></i> 185****7985 (同微信)</p>
+                    <p><i class="fa fa-map-marker"></i> 北京 昌平区 ****街道 ** 号</p>
+                </address>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- end contact -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <p class="templatemo-copyright">Copyright © 2021 UShort <a href="https://www.umfintech.com/index"
+                                                                           target="_blank" title="U短链">个人网站</a></p>
+                <ul class="social_icon">
+                    <li><a href="#" class="fa fa-facebook"></a></li>
+                    <li><a href="#" class="fa fa-twitter"></a></li>
+                    <li><a href="#" class="fa fa-google-plus"></a></li>
+                    <li><a href="#" class="fa fa-linkedin"></a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+<script src="js/jquery.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/wow.min.js"></script>
+<script src="js/short.js"></script>
+<style>
+    .copyrights {
+        text-indent: -9999px;
+        height: 0;
+        line-height: 0;
+        font-size: 0;
+        overflow: hidden;
+    }
+</style>
+</body>
+</html>

@@ -25,6 +25,7 @@ import (
 	"shorturl/configMgr"
 	"shorturl/endpoint"
 	"shorturl/logging"
+	chainmaker "shorturl/repository/chainmaker"
 	mysqlrepo "shorturl/repository/mysql"
 	redisrepo "shorturl/repository/redis"
 	"shorturl/service"
@@ -92,7 +93,7 @@ func Run() {
 	logPath := viper.GetString("log.path")
 	logLevel := viper.GetString("log.level")
 
-	logger = logging.SetLogging(logger, logPath, logLevel)
+	logger = logging.SetLogging(logger, &logPath, &logLevel)
 
 	var repo service.Repository
 	switch dBType {
@@ -118,6 +119,14 @@ func Run() {
 		repo, err = redisrepo.NewRedisRepository(redisrepo.RedisDrive(redisDrive), redisHosts, redisPassword, "shorter", db)
 		if err != nil {
 			_ = level.Error(logger).Log("connect", "db", "err", err.Error())
+			return
+		}
+	case "chainmaker":
+		conteactName := viper.GetString("db.chainmaker.conteactName")
+		configPath := viper.GetString("db.chainmaker.configpath")
+		repo, err =chainmaker.NewMakerRepository(conteactName,configPath)
+		if err != nil {
+			_ = level.Error(logger).Log("connect", "chainmaker", "err", err.Error())
 			return
 		}
 	}
@@ -152,11 +161,12 @@ func (server *Server)initHttpHandler(endpoints endpoint.Endpoints, g *group.Grou
 		headers := make(map[string]string)
 		if isDev, _ := strconv.ParseBool(devCors); isDev {
 			headers = map[string]string{
-				"Access-Control-Allow-Origin":  "http://localhost:8000",
+				"Access-Control-Allow-Origin":  "*",
 				"Access-Control-Allow-Methods": "GET,POST,OPTIONS,PUT,DELETE",
 				"Access-Control-Allow-Headers": "Origin,Content-Type,mode,Authorization,x-requested-with,Access-Control-Allow-Origin,Access-Control-Allow-Credentials",
 			}
 		}
+		http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./static/"))))
 		return http.Serve(httpListener, accessControl(httpHandler, logger, headers))
 	}, func(error) {
 		_ = httpListener.Close()
