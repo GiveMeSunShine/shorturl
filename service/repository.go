@@ -10,7 +10,12 @@
 package service
 
 type Repository interface {
-	Find(code string) (redirect *Redirect, err error)
-	Store(redirect *Redirect) ([]byte,error)
+	Find(code string) (redirect *DBStore, err error)
+	Store(redirect *DBStore) ([]byte, error)
 	Exists(has string) (exists bool, err error)
+}
+
+type FileRepository interface {
+	Upload(file string, fileName string) (hash string, err error)
+	Download(hash string) string
 }

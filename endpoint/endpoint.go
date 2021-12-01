@@ -12,6 +12,7 @@ package endpoint
 import (
 	"context"
 	"github.com/go-kit/kit/endpoint"
+	"mime/multipart"
 	"shorturl/service"
 )
 
@@ -19,7 +20,7 @@ type dataResponse struct {
 	//LongUrl string `json:"long_url"`
 	Code string `json:"code"`
 	//CreateAt time.Time `json:"create_at"`
-	ShortUrl string `json:"short_url"`
+	ShortUrl  string      `json:"short_url"`
 	ChainInfo interface{} `json:"chain_info"`
 }
 
@@ -28,37 +29,47 @@ type GetRequest struct {
 }
 
 type GetResponse struct {
-	Err error `json:"err"`
+	Err  error       `json:"err"`
 	Data interface{} `json:"data"`
 }
 
 type PostRequest struct {
-	LongUrl string `json:"long_url" `
+	LongUrl    string
+	Type       string
+	File       multipart.File
+	FileHeader multipart.FileHeader
 }
 
 type PostResponse struct {
-	Err error `json:"err"`
+	Err  error        `json:"err"`
 	Data dataResponse `json:"data"`
 }
 
 type Endpoints struct {
-	GetEndpoint endpoint.Endpoint
+	GetEndpoint  endpoint.Endpoint
 	PostEndpoint endpoint.Endpoint
 }
-
 
 func MakeGetEndpoint(s service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(GetRequest)
 		redirect, err := s.Get(ctx, req.Code)
-		return GetResponse{Err: err,Data: redirect},err
+		return GetResponse{Err: err, Data: redirect}, err
 	}
 }
 
 func MakePostEndpoint(s service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(PostRequest)
-		post, err := s.Post(ctx, req.LongUrl)
+
+		info := service.PostInfo{
+			LongUrl:    req.LongUrl,
+			Type:       req.Type,
+			File:       req.File,
+			FileHeader: req.FileHeader,
+		}
+
+		post, err := s.Post(ctx, info)
 		resp := dataResponse{}
 
 		if err == nil && post != nil {
@@ -68,7 +79,7 @@ func MakePostEndpoint(s service.Service) endpoint.Endpoint {
 			resp.ShortUrl = post.ShortUrl
 			resp.ChainInfo = post.ChainInfo
 		}
-		return PostResponse{Err: err,Data: resp},nil
+		return PostResponse{Err: err, Data: resp}, nil
 	}
 }
 
@@ -80,30 +91,29 @@ type Failed interface {
 	Failed() error
 }
 
-
-func New(s service.Service, mid map[string][] endpoint.Middleware) Endpoints {
+func New(s service.Service, mid map[string][]endpoint.Middleware) Endpoints {
 	endpoints := Endpoints{
 		GetEndpoint:  MakeGetEndpoint(s),
 		PostEndpoint: MakePostEndpoint(s),
 	}
 
-	for _,m := range mid["Get"]{
+	for _, m := range mid["Get"] {
 		endpoints.GetEndpoint = m(endpoints.GetEndpoint)
 	}
 
-	for _,mid :=range mid["Post"]{
+	for _, mid := range mid["Post"] {
 		endpoints.PostEndpoint = mid(endpoints.PostEndpoint)
 	}
 	return endpoints
 }
 
-func (e Endpoints) Get(ctx context.Context,code string) (rs interface{}, err error)  {
+func (e Endpoints) Get(ctx context.Context, code string) (rs interface{}, err error) {
 	request := GetRequest{Code: code}
 	response, err := e.GetEndpoint(ctx, request)
 	if err != nil {
 		return
 	}
-	return response.(GetResponse).Data,response.(GetResponse).Err
+	return response.(GetResponse).Data, response.(GetResponse).Err
 }
 
 func (e Endpoints) Post(ctx context.Context, url string) (rs interface{}, err error) {
@@ -111,8 +121,8 @@ func (e Endpoints) Post(ctx context.Context, url string) (rs interface{}, err er
 		LongUrl: url,
 	}
 	response, err := e.PostEndpoint(ctx, request)
-	if err!=nil {
+	if err != nil {
 		return
 	}
-	return response.(PostResponse).Data,response.(PostResponse).Err
+	return response.(PostResponse).Data, response.(PostResponse).Err
 }

@@ -20,18 +20,21 @@ import (
 	"log"
 	"shorturl/service"
 )
+
 type Short struct {
-	ShortUrl string `json:"shortUrl"`
-	LongUrl string `json:"longUrl"`
-	Code string `json:"code"`
+	ShortUrl    string `json:"shortUrl"`
+	LongUrl     string `json:"longUrl"`
+	Code        string `json:"code"`
+	Type        string `json:"type"`
+	FileName    string `json:"file_name"`
 	Description string `json:"description"`
-	Creator string `json:"creator"`
-	Version string `json:"version"`
-	Time     int32 `json:"time"`
+	Creator     string `json:"creator"`
+	Version     string `json:"version"`
+	Time        int32  `json:"time"`
 }
 
 type makerRepository struct {
-	client   *sdk.ChainClient
+	client       *sdk.ChainClient
 	contractName string
 }
 
@@ -39,23 +42,22 @@ func (m *makerRepository) Exists(has string) (exists bool, err error) {
 	return
 }
 
-func NewMakerRepository(contractName string,configPath string) (service.Repository, error) {
+func NewMakerRepository(contractName string, configPath string) (service.Repository, error) {
 	log.Println("=========== Create ChainClient ==============")
 	client, err := utils.CreateChainClientWithSDKConf(configPath)
-	if err!=nil {
-		log.Fatalln("Create Chain Client ERR:",err)
+	if err != nil {
+		log.Fatalln("Create Chain Client ERR:", err)
 	}
 	height, err := client.GetCurrentBlockHeight()
 	if err != nil {
-		log.Fatalln("Create Chain Client ERR:",err)
+		log.Fatalln("Create Chain Client ERR:", err)
 	}
-	log.Println(" ===> Current Block Height :",height )
-	return &makerRepository{client: client,contractName: contractName}, nil
+	log.Println(" ===> Current Block Height :", height)
+	return &makerRepository{client: client, contractName: contractName}, nil
 }
 
-
-func (m *makerRepository) Find(code string) (redirect *service.Redirect, err error) {
-	log.Println("[chainMaker] Find : ",code)
+func (m *makerRepository) Find(code string) (dbStore *service.DBStore, err error) {
+	log.Println("[chainMaker] Find : ", code)
 	kvs := []*common.KeyValuePair{
 		{
 			Key:   "code",
@@ -64,28 +66,30 @@ func (m *makerRepository) Find(code string) (redirect *service.Redirect, err err
 	}
 	query, err := userContractClaimQuery(m.client, m.contractName, "find_by_code", kvs)
 	if err != nil {
-		log.Fatalln("[chainMaker]  userContractClaimQuery Err :",err)
+		log.Fatalln("[chainMaker]  userContractClaimQuery Err :", err)
 	}
-	redirect = &service.Redirect{
-		Code: query.Code,
+	dbStore = &service.DBStore{
+		Code:     query.Code,
 		ShortUrl: query.ShortUrl,
-		LongUrl: query.LongUrl,
+		OrgLink:  query.LongUrl,
+		Type:     query.Type,
+		FileName: query.FileName,
 	}
-	return redirect, nil
+	return dbStore, nil
 }
 
-func (m *makerRepository) Store(redirect *service.Redirect) ([]byte,error) {
+func (m *makerRepository) Store(dbStore *service.DBStore) ([]byte, error) {
 
-	invoke, err := userContractClaimInvoke(m.client, m.contractName,redirect, "save", true)
+	invoke, err := userContractClaimInvoke(m.client, m.contractName, dbStore, "save", true)
 	if err != nil {
-		log.Fatalln("[chainMaker] Store ERR :",err)
+		log.Fatalln("[chainMaker] Store ERR :", err)
 	}
-	log.Println("[chainMaker] Store success , Txid : ",string(invoke))
-	return invoke,nil
+	log.Println("[chainMaker] Store success , Txid : ", string(invoke))
+	return invoke, nil
 }
 
-func userContractClaimInvoke(client *sdk.ChainClient, contractName string, redirect *service.Redirect, method string, withSyncResult bool) ([]byte, error) {
-	curTime := strconv.FormatInt(redirect.CreatedAt.Unix(), 10)
+func userContractClaimInvoke(client *sdk.ChainClient, contractName string, dbStore *service.DBStore, method string, withSyncResult bool) ([]byte, error) {
+	curTime := strconv.FormatInt(dbStore.CreatedAt.Unix(), 10)
 	kvs := []*common.KeyValuePair{
 		{
 			Key:   "time",
@@ -93,22 +97,28 @@ func userContractClaimInvoke(client *sdk.ChainClient, contractName string, redir
 		},
 		{
 			Key:   "short_url",
-			Value: []byte(redirect.ShortUrl),
+			Value: []byte(dbStore.ShortUrl),
 		},
 		{
 			Key:   "long_url",
-			Value: []byte(redirect.LongUrl),
+			Value: []byte(dbStore.OrgLink),
 		},
 		{
 			Key:   "code",
-			Value: []byte(redirect.Code),
-		},{
+			Value: []byte(dbStore.Code),
+		}, {
+			Key:   "type",
+			Value: []byte(dbStore.Type),
+		}, {
+			Key:   "file_name",
+			Value: []byte(dbStore.FileName),
+		}, {
 			Key:   "description",
-			Value: []byte("测试数据"),
-		},{
+			Value: []byte(""),
+		}, {
 			Key:   "creator",
 			Value: []byte("admin"),
-		},{
+		}, {
 			Key:   "version",
 			Value: []byte("1.0.0"),
 		},
@@ -116,7 +126,7 @@ func userContractClaimInvoke(client *sdk.ChainClient, contractName string, redir
 
 	result, err := invokeUserContract(client, contractName, method, "", kvs, withSyncResult)
 	if err != nil {
-		log.Fatalln("[chainMaker] invokeUserContract Err : ",err)
+		log.Fatalln("[chainMaker] invokeUserContract Err : ", err)
 		return nil, err
 	}
 	return result, nil
@@ -133,7 +143,6 @@ func invokeUserContract(client *sdk.ChainClient, contractName, method, txId stri
 		return nil, fmt.Errorf("invoke contract failed, [code:%d]/[msg:%s]\n", resp.Code, resp.Message)
 	}
 
-
 	if !withSyncResult {
 		log.Println("[chainMaker] invoke contract success, resp: \n", resp.Code, resp.Message, resp.ContractResult)
 	} else {
@@ -141,28 +150,15 @@ func invokeUserContract(client *sdk.ChainClient, contractName, method, txId stri
 	}
 	info, _ := client.GetChainInfo()
 	chainInfo := &service.ChainInfo{
-		Txid: resp.GetTxId(),
+		Txid:        resp.GetTxId(),
 		BlockHeight: info.BlockHeight,
 	}
-
-	/*id, err := client.GetBlockByTxId(resp.GetTxId(), true)
-	if err != nil {
-		log.Fatalln("GetBlockByTxId Err : ",err)
-	}
-	log.Println("GetBlockByTxId : ",id)
-
-	byTxId, err := client.GetTxByTxId(resp.GetTxId())
-	if err != nil {
-		log.Fatalln("GetTxByTxId Err : ",err)
-	}
-	log.Println("GetTxByTxId : ",byTxId)*/
-
 	marshal, _ := json.Marshal(chainInfo)
 
-	return marshal,nil
+	return marshal, nil
 }
 
-func userContractClaimQuery(client *sdk.ChainClient,contractName string,method string, kvs []*common.KeyValuePair) (short *Short, err error){
+func userContractClaimQuery(client *sdk.ChainClient, contractName string, method string, kvs []*common.KeyValuePair) (short *Short, err error) {
 	resp, err := client.QueryContract(contractName, method, kvs, -1)
 	if err != nil {
 		log.Fatalln(err)
@@ -173,11 +169,11 @@ func userContractClaimQuery(client *sdk.ChainClient,contractName string,method s
 		short = &Short{}
 		err := json.Unmarshal(result, &short)
 		if err != nil {
-			return short,err
+			return short, err
 		}
-		return short,nil
-	}else {
+		return short, nil
+	} else {
 		log.Fatalln("QUERY claim contract err")
 	}
-	return short,nil
+	return short, nil
 }

@@ -16,14 +16,13 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"shorturl/endpoint"
 	"shorturl/service"
 )
 
-func NewHttpHandler(endpoints endpoint.Endpoints, options map[string][] kithttp.ServerOption) http.Handler {
+func NewHttpHandler(endpoints endpoint.Endpoints, options map[string][]kithttp.ServerOption) http.Handler {
 	router := mux.NewRouter()
 	router.Handle("/", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
 	router.Handle("/css/animate.min.css", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
@@ -45,41 +44,48 @@ func NewHttpHandler(endpoints endpoint.Endpoints, options map[string][] kithttp.
 	router.Handle("/images/team_img_3.png", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
 	router.Handle("/images/team_img_4.png", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
 	router.Handle("/favicon.ico", http.FileServer(http.Dir("./static"))).Methods(http.MethodGet)
-	router.Handle("/{code}",kithttp.NewServer(
-			endpoints.GetEndpoint,
-			decodeGetRequest,
-			encodeGetResponse,
-			options["Get"]...
-		)).Methods(http.MethodGet)
+	router.Handle("/{code}", kithttp.NewServer(
+		endpoints.GetEndpoint,
+		decodeGetRequest,
+		encodeGetResponse,
+		options["Get"]...,
+	)).Methods(http.MethodGet)
 
-	router.Handle("/",kithttp.NewServer(
-			endpoints.PostEndpoint,
-			decodePostRequest,
-			encodePostResponse,
-			options["Post"]...
-		)).Methods(http.MethodPost)
+	router.Handle("/", kithttp.NewServer(
+		endpoints.PostEndpoint,
+		decodePostRequest,
+		encodePostResponse,
+		options["Post"]...,
+	)).Methods(http.MethodPost)
 	return router
 }
 
-func decodePostRequest(_ context.Context,r *http.Request) (interface{},error) {
-	var req endpoint.PostRequest
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-	if err = json.Unmarshal(b,&req); err != nil {
-		return nil, err
+func decodePostRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var req = endpoint.PostRequest{}
+	urlType := r.FormValue("type")
+	req.Type = urlType
+	if urlType == "0" {
+		longUrl := r.FormValue("long_url")
+		req.LongUrl = longUrl
+	} else if urlType == "1" {
+		file, header, err2 := r.FormFile("file")
+		if err2 != nil {
+			return file, nil
+		}
+		defer file.Close()
+		req.File = file
+		req.FileHeader = *header
 	}
 	validate := validator.New()
-	if err:= validate.Struct(req); err != nil {
+	if err := validate.Struct(req); err != nil {
 		return nil, errors.Wrap(err, service.DataInvalidErr.Error())
 	}
-	return req,nil
+	return req, nil
 }
 
-func encodePostResponse(ctx context.Context, w http.ResponseWriter,response interface{}) (err error) {
-	if f,ok := response.(endpoint.Failed); ok && f.Failed() != nil{
-		ErrorEncoder(ctx,f.Failed(),w)
+func encodePostResponse(ctx context.Context, w http.ResponseWriter, response interface{}) (err error) {
+	if f, ok := response.(endpoint.Failed); ok && f.Failed() != nil {
+		ErrorEncoder(ctx, f.Failed(), w)
 		return nil
 	}
 	err = json.NewEncoder(w).Encode(response)
@@ -92,24 +98,24 @@ var (
 
 func decodeGetRequest(_ context.Context, request *http.Request) (interface{}, error) {
 	vars := mux.Vars(request)
-	code , ok := vars["code"]
+	code, ok := vars["code"]
 	if !ok {
-		return nil,ErrCodeNotFound
+		return nil, ErrCodeNotFound
 	}
 	req := endpoint.GetRequest{
 		Code: code,
 	}
-	return req,nil
+	return req, nil
 }
 
-func encodeGetResponse(ctx context.Context, w http.ResponseWriter,response interface{}) ( err error) {
-	if f,ok := response.(endpoint.Failed); ok && f.Failed() != nil {
-		ErrorRedirect(ctx,f.Failed(),w)
+func encodeGetResponse(ctx context.Context, w http.ResponseWriter, response interface{}) (err error) {
+	if f, ok := response.(endpoint.Failed); ok && f.Failed() != nil {
+		ErrorRedirect(ctx, f.Failed(), w)
 		return nil
 	}
 	resp := response.(endpoint.GetResponse)
 	redirect := resp.Data.(*service.Redirect)
-	http.Redirect(w,&http.Request{},redirect.LongUrl,http.StatusFound)
+	http.Redirect(w, &http.Request{}, redirect.OrgLink, http.StatusFound)
 	return
 }
 
@@ -129,6 +135,3 @@ func err2code(err error) int {
 type errorWrapper struct {
 	Error string `json:"error"`
 }
-
-
-

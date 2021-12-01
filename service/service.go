@@ -10,10 +10,12 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"github.com/go-kit/log"
+	"io"
 	"shorturl/shortid"
 	"strings"
 	"time"
@@ -21,26 +23,35 @@ import (
 
 var (
 	DataNotFoundErr = errors.New("Redirect Data Not Found")
-	DataInvalidErr = errors.New("Redirect Data Invalid")
+	DataInvalidErr  = errors.New("Redirect Data Invalid")
 )
 
 type Service interface {
 	Get(ctx context.Context, code string) (redirect *Redirect, err error)
-	Post(ctx context.Context, demain string) (redirect *Redirect, err error)
+	Post(ctx context.Context, parm PostInfo) (redirect *Redirect, err error)
 }
 
 type service struct {
-	repository Repository
-	logger log.Logger
-	shortUrl string
-	maxLen int
+	repository     Repository
+	fileRepository FileRepository
+	logger         log.Logger
+	shortUrl       string
+	maxLen         int
 }
 
 func (s service) Get(ctx context.Context, code string) (redirect *Redirect, err error) {
-	return s.repository.Find(code)
+	find, err := s.repository.Find(code)
+	if err != nil {
+		//TODO
+		return nil, err
+	}
+	redirect = &Redirect{
+		OrgLink: find.OrgLink,
+	}
+	return redirect, nil
 }
 
-func (s service) Post(ctx context.Context, url string) (redirect *Redirect, err error) {
+func (s service) Post(ctx context.Context, parm PostInfo) (redirect *Redirect, err error) {
 	now := time.Now()
 	now = now.In(time.Local)
 	var code string
@@ -48,41 +59,56 @@ func (s service) Post(ctx context.Context, url string) (redirect *Redirect, err 
 	if s.maxLen > 0 {
 		code = code[:s.maxLen]
 	}
-
-
-	 redirect = &Redirect{
-	 	Code: code,
-	 	LongUrl: url,
-	 	ShortUrl: strings.TrimRight(s.shortUrl,"/")+"/"+code,
-	 	CreatedAt: now,
-	 }
-
-	store, err := s.repository.Store(redirect)
+	shortUrl := strings.TrimRight(s.shortUrl, "/") + "/" + code
+	dbStore := &DBStore{
+		Code:      code,
+		OrgLink:   parm.LongUrl,
+		ShortUrl:  shortUrl,
+		Type:      parm.Type,
+		CreatedAt: now,
+	}
+	if parm.Type == "1" {
+		buf := bytes.NewBuffer(nil)
+		if _, err := io.Copy(buf, parm.File); err != nil {
+			return nil, err
+		}
+		hash, err := s.fileRepository.Upload(buf.String(), parm.FileHeader.Filename)
+		if err != nil {
+			// TODO
+		}
+		dbStore.OrgLink = hash
+		dbStore.FileName = parm.FileHeader.Filename
+	}
+	redirect = &Redirect{
+		Code:      code,
+		OrgLink:   parm.LongUrl,
+		ShortUrl:  shortUrl,
+		CreatedAt: now,
+	}
+	store, err := s.repository.Store(dbStore)
 	if err != nil {
 		return
 	}
-	if store!=nil {
+	if store != nil {
 		chainInfo := &ChainInfo{}
-		json.Unmarshal(store,chainInfo)
+		json.Unmarshal(store, chainInfo)
 		redirect.ChainInfo = chainInfo
 	}
 
-	//redirect.LongUrl = strings.TrimRight(s.shortUrl,"/")+"/"+code
-	return redirect,nil
+	return redirect, nil
 }
 
-func New(middleware []Middleware,repository Repository,logger log.Logger,shortUrl string,maxLen int) Service {
-	var svc = NewService(logger,repository,shortUrl,maxLen)
-	for _,mid := range middleware{
+func New(middleware []Middleware, repository Repository, fileRepository FileRepository, logger log.Logger, shortUrl string, maxLen int) Service {
+	var svc = NewService(logger, repository, fileRepository, shortUrl, maxLen)
+	for _, mid := range middleware {
 		svc = mid(svc)
 	}
 	return svc
 }
 
-func NewService(logger log.Logger, repository Repository, shortUrl string, maxLength int) Service {
+func NewService(logger log.Logger, repository Repository, fileRepository FileRepository, shortUrl string, maxLength int) Service {
 	if maxLength > 9 {
 		maxLength = 9
 	}
-	return &service{repository: repository, shortUrl: shortUrl, logger: logger, maxLen: maxLength}
+	return &service{repository: repository, fileRepository: fileRepository, shortUrl: shortUrl, logger: logger, maxLen: maxLength}
 }
-

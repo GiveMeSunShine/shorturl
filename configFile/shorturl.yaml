@@ -15,9 +15,15 @@ log:
     level: all
     path: ./logs
 
+file:
+    type: local
+    local:
+        path: upload/
+    ipfs:
+        address: localhost:8080
 
 db:
-    dBType: chainmaker
+    dBType: mysql
     cacheType: redis
     createTableEnabled: true
     mysql:

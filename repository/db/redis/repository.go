@@ -31,10 +31,10 @@ func NewRedisRepository(drive RedisDrive, hosts, password, prefix string, databa
 }
 
 func (m *redisRepository) generateKey(code string) string {
-	return fmt.Sprintf("redirect:%s", code)
+	return fmt.Sprintf("%s", code)
 }
 
-func (m *redisRepository) Find(code string) (redirect *service.Redirect, err error) {
+func (m *redisRepository) Find(code string) (dbStore *service.DBStore, err error) {
 	data, err := m.client.HGetAll(m.generateKey(code))
 	if err != nil {
 		return nil, errors.Wrap(err, "repository.Redirect.Find")
@@ -49,25 +49,29 @@ func (m *redisRepository) Find(code string) (redirect *service.Redirect, err err
 		return
 	}
 
-	return &service.Redirect{
+	return &service.DBStore{
 		Code:      data["code"],
-		LongUrl:       data["long_url"],
+		OrgLink:   data["long_url"],
 		CreatedAt: now.In(time.Local),
-		ShortUrl: data["short_url"],
+		ShortUrl:  data["short_url"],
+		Type:      data["type"],
+		FileName:  data["file_name"],
 	}, nil
 }
 
-func (m *redisRepository) Store(redirect *service.Redirect) ([]byte,error) {
+func (m *redisRepository) Store(dbStore *service.DBStore) ([]byte, error) {
 	data := map[string]interface{}{
-		"code":       redirect.Code,
-		"long_url":        redirect.LongUrl,
-		"created_at": redirect.CreatedAt.Format("2006-01-02 15:04:05"),
-		"short_url": redirect.ShortUrl,
+		"code":       dbStore.Code,
+		"long_url":   dbStore.OrgLink,
+		"created_at": dbStore.CreatedAt.Format("2006-01-02 15:04:05"),
+		"short_url":  dbStore.ShortUrl,
+		"type":       dbStore.Type,
+		"file_name":  dbStore.FileName,
 	}
 
-	err := m.client.HMSet(m.generateKey(redirect.Code), data)
+	err := m.client.HMSet(m.generateKey(dbStore.Code), data)
 	if err != nil {
-		return nil,errors.Wrap(err, "repository.Redirect.Store")
+		return nil, errors.Wrap(err, "repository.Redirect.Store")
 	}
-	return nil,nil
+	return nil, nil
 }

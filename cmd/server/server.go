@@ -25,9 +25,11 @@ import (
 	"shorturl/configMgr"
 	"shorturl/endpoint"
 	"shorturl/logging"
-	chainmaker "shorturl/repository/chainmaker"
-	mysqlrepo "shorturl/repository/mysql"
-	redisrepo "shorturl/repository/redis"
+	chainmaker2 "shorturl/repository/db/chainmaker"
+	redis2 "shorturl/repository/db/mysql"
+	"shorturl/repository/db/redis"
+	ipfs2 "shorturl/repository/file/ipfs"
+	local2 "shorturl/repository/file/local"
 	"shorturl/service"
 	httptransport "shorturl/transport/http"
 	"strconv"
@@ -37,24 +39,8 @@ import (
 
 var logger log.Logger
 
-var(
-	/*fs            = flag.NewFlagSet("hello", flag.ExitOnError)
-	httpAddr      = fs.String("http-addr", ":8080", "HTTP listen address")
-	devCors       = fs.String("dev-cors", "false", "is develop")
-	dbDrive       = fs.String("db-drive", "mysql", "db drive type, default: mysql")
-	redisDrive    = fs.String("redis-drive", "single", "redis drive: single or cluster")
-	redisHosts    = fs.String("redis-hosts", "localhost:6379", "redis hosts, many ';' split")
-	redisPassword = fs.String("redis-password", "", "redis password")
-	redisDB       = fs.String("redis-db", "0", "redis db")
-	mysqlHosts    = fs.String("mysql-hosts", "127.0.0.1:3306", "mysql hosts")
-	mysqlPassword = fs.String("mysql-password", "root", "mysql password")
-	mysqlDB       = fs.String("mysql-db", "shorturl", "mysql db")
-	shortUrl      = fs.String("shortid-url", "http://localhost:8080/", "shortid url")
-	logPath       = fs.String("log-path", "", "logging file path.")
-	logLevel      = fs.String("log-level", "all", "logging level.")
-	rateBucketNum = fs.Int("rate-bucket", 10, "rate bucket num")
-	maxLength     = fs.Int("max-length", -1, "code length")*/
-	err           error
+var (
+	err error
 )
 
 type Server struct {
@@ -62,31 +48,14 @@ type Server struct {
 }
 
 func Run() {
-	/*if err := fs.Parse(os.Args[1:]); err != nil {
-		panic(err)
-	}
-	redisDrive = envString("REDIS_DRIVE", redisDrive)
-	redisHosts = envString("REDIS_HOSTS", redisHosts)
-	redisPassword = envString("REDIS_PASSWORD", redisPassword)
-	redisDB = envString("REDIS_DB", redisDB)
-	mysqlHosts    = envString("MYSQL_HOSTS", mysqlHosts)
-	mysqlPassword = envString("MYSQL_PASSWORD", mysqlPassword)
-	mysqlDB       = envString("MYSQL_DB", mysqlDB)
-	dbDrive = envString("DB_DRIVE", dbDrive)
-	shortUrl = envString("SHORT_URL", shortUrl)
-	logPath = envString("LOG_PATH", logPath)
-	logLevel = envString("LOG_LEVEL", logLevel)
-	devCors = envString("DEV_CORS", devCors)
-	rateBucketNum = envInt("RATE_BUCKET", rateBucketNum)
-	maxLength = envInt("MAX_LENGTH", maxLength)*/
 	conf, err := configMgr.NewShortUrlConf()
 	if err != nil {
-		logger.Log("read conf Err :",err)
+		logger.Log("read conf Err :", err)
 		panic(err)
 		return
 	}
 	viper := conf.GetShortConfigViper()
-	server:= &Server{
+	server := &Server{
 		conf: conf,
 	}
 	dBType := viper.GetString("db.dBType")
@@ -105,7 +74,7 @@ func Run() {
 		database := viper.GetString("db.mysql.libName")
 		maxConn := viper.GetInt("db.mysql.maxConn")
 		idleConn := viper.GetInt("db.mysql.idleConn")
-		repo, err = mysqlrepo.NewMySQLRepository(dBType,hosts,port,username,passwd,database,idleConn,maxConn)
+		repo, err = redis2.NewMySQLRepository(dBType, hosts, port, username, passwd, database, idleConn, maxConn)
 		if err != nil {
 			_ = level.Error(logger).Log("connect", "db", "err", err.Error())
 			return
@@ -116,7 +85,7 @@ func Run() {
 		redisHosts := viper.GetString("db.redis.hosts")
 		redisPassword := viper.GetString("db.redis.passwd")
 		db, _ := strconv.Atoi(redisDB)
-		repo, err = redisrepo.NewRedisRepository(redisrepo.RedisDrive(redisDrive), redisHosts, redisPassword, "shorter", db)
+		repo, err = redis.NewRedisRepository(redis.RedisDrive(redisDrive), redisHosts, redisPassword, "shorter", db)
 		if err != nil {
 			_ = level.Error(logger).Log("connect", "db", "err", err.Error())
 			return
@@ -124,7 +93,7 @@ func Run() {
 	case "chainmaker":
 		conteactName := viper.GetString("db.chainmaker.conteactName")
 		configPath := viper.GetString("db.chainmaker.configpath")
-		repo, err =chainmaker.NewMakerRepository(conteactName,configPath)
+		repo, err = chainmaker2.NewMakerRepository(conteactName, configPath)
 		if err != nil {
 			_ = level.Error(logger).Log("connect", "chainmaker", "err", err.Error())
 			return
@@ -133,24 +102,42 @@ func Run() {
 	shortUrl := viper.GetString("short.defaultUrl")
 	maxLength := viper.GetInt("short.maxLength")
 
-	svc := service.New(getServiceMiddleware(logger),repo,logger,shortUrl,maxLength)
+	fileRep := viper.GetString("file.type")
+	var fileRepository service.FileRepository
+	switch fileRep {
+	case "local":
+		path := viper.GetString("file.local.path")
+		fileRepository, err = local2.NewLocalRepository(path)
+		if err != nil {
+			_ = level.Error(logger).Log("connect", "db", "err", err.Error())
+			return
+		}
+	case "ipfs":
+		ipfsAddr := viper.GetString("file.ipfs.address")
+		fileRepository, err = ipfs2.NewIpfsRepository(ipfsAddr)
+		if err != nil {
+			_ = level.Error(logger).Log("connect", "ipfs", "err", err.Error())
+			return
+		}
+	}
+	svc := service.New(getServiceMiddleware(logger), repo, fileRepository, logger, shortUrl, maxLength)
 	eps := endpoint.New(svc, server.getEndpointMiddleware(logger))
 	g := server.createService(eps)
 	initCancelInterrupt(g)
 	_ = logger.Log("exit", g.Run())
 }
 
-func (server *Server)createService(endpoints endpoint.Endpoints) (g *group.Group) {
+func (server *Server) createService(endpoints endpoint.Endpoints) (g *group.Group) {
 	g = &group.Group{}
 	server.initHttpHandler(endpoints, g)
 	return g
 }
 
-func (server *Server)initHttpHandler(endpoints endpoint.Endpoints, g *group.Group) {
+func (server *Server) initHttpHandler(endpoints endpoint.Endpoints, g *group.Group) {
 	options := defaultHttpOptions(logger)
 
-	httpHandler := httptransport.NewHttpHandler(endpoints,options)
-	httpAddr  := server.conf.Viper.GetString("short.http.address")
+	httpHandler := httptransport.NewHttpHandler(endpoints, options)
+	httpAddr := server.conf.Viper.GetString("short.http.address")
 	devCors := server.conf.Viper.GetString("develop")
 	httpListener, err := net.Listen("tcp", httpAddr)
 	if err != nil {
@@ -209,7 +196,7 @@ func getServiceMiddleware(logger log.Logger) (mw []service.Middleware) {
 	mw = addDefaultServiceMiddleware(logger, mw)
 	return
 }
-func (server *Server)getEndpointMiddleware(logger log.Logger) (mw map[string][]kitendpoint.Middleware) {
+func (server *Server) getEndpointMiddleware(logger log.Logger) (mw map[string][]kitendpoint.Middleware) {
 	mw = map[string][]kitendpoint.Middleware{}
 	mw = server.addDefaultEndpointMiddleware(logger, mw)
 
@@ -240,7 +227,7 @@ func addDefaultServiceMiddleware(logger log.Logger, mw []service.Middleware) []s
 	return mw
 }
 
-func (server *Server)addDefaultEndpointMiddleware(logger log.Logger, mw map[string][]kitendpoint.Middleware) map[string][]kitendpoint.Middleware {
+func (server *Server) addDefaultEndpointMiddleware(logger log.Logger, mw map[string][]kitendpoint.Middleware) map[string][]kitendpoint.Middleware {
 	rateBucketNum := server.conf.Viper.GetInt("short.rateBucketNum")
 	mw["Post"] = append(mw["Post"],
 		endpoint.LoggingMiddleware(logger),
